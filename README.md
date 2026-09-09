@@ -139,3 +139,13 @@ QQ群：群1:1034380536 （已满）、群2:1098802068
 [Apache License 2.0](https://github.com/macrozheng/mall/blob/master/LICENSE)
 
 Copyright (c) 2018-2024 macrozheng
+
+## Fork baseline
+
+This fork keeps the upstream MIT `LICENSE` and copyright notices.
+
+- origin `main` is the product trunk. It started equal to upstream `master`.
+- upstream remains `https://github.com/Alanosy/online-exam-system-backend` (`master`). Do not delete `master`.
+- Run the stack with Docker Compose. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+- Branch and sync rules: [docs/UPSTREAM.md](docs/UPSTREAM.md).
+- Current stack facts: [docs/BASELINE.md](docs/BASELINE.md).

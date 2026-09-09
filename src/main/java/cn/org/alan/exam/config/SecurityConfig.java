@@ -60,7 +60,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                         // 其他需要允许匿名访问的路径，如文档页面、WebSocket 相关路径等
                         "/doc.html",
                         "/ws/**",
-                        "/ws-app/**"
+                        "/ws-app/**",
+                        "/health"
                 )
                 // 这些路径允许所有请求访问，无需进行身份验证
                 .permitAll()

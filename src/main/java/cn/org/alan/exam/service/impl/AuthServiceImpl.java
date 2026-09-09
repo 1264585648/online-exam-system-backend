@@ -164,6 +164,9 @@ public class AuthServiceImpl implements IAuthService {
      * @return
      */
     public static String extractDeviceType(String userAgent) {
+        if (userAgent == null || userAgent.trim().isEmpty()) {
+            return "Unknown";
+        }
         // 定义正则表达式模式
         String pattern = "\\((.*?);";
         Pattern r = Pattern.compile(pattern);
@@ -172,7 +175,7 @@ public class AuthServiceImpl implements IAuthService {
             // 返回匹配到的设备类型
             return m.group(1);
         }
-        return null;
+        return "Unknown";
     }
 
     /**

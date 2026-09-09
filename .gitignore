@@ -56,3 +56,7 @@ mvnw.cmd
 online-exam-agent/.env
 online-exam-agent/.DS_Store
 online-exam-agent/venv/
+
+# local secrets
+.env
+*.env.local
