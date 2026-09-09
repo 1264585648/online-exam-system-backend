@@ -1,0 +1,89 @@
+name: upstream-sync
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Detect upstream changes and open a sync PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPSTREAM_URL: https://github.com/Alanosy/online-exam-system-backend.git
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream "$UPSTREAM_URL" || git remote set-url upstream "$UPSTREAM_URL"
+          git fetch upstream master
+          git fetch origin main
+
+          COUNT="$(git rev-list --count origin/main..upstream/master)"
+          echo "new upstream commits: $COUNT"
+          if [ "$COUNT" = "0" ]; then
+            echo "No upstream changes. Exiting without a commit or PR."
+            exit 0
+          fi
+
+          START="$(git merge-base origin/main upstream/master)"
+          LATEST="$(git rev-parse upstream/master)"
+          DATE="$(date -u +%Y%m%d)"
+          NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          BRANCH="chore/upstream-sync-${DATE}"
+
+          git checkout -B "$BRANCH" origin/main
+          set +e
+          git merge --no-ff --no-edit upstream/master
+          MERGE_STATUS=$?
+          set -e
+
+          CONFLICT="no"
+          if [ "$MERGE_STATUS" -ne 0 ]; then
+            CONFLICT="yes"
+            echo "Merge conflicts. Keeping the PR for manual handling."
+            git add -A
+            git commit -m "chore: sync upstream Alanosy/master (conflicts, needs manual handling)"
+          fi
+
+          git push --force-with-lease origin "$BRANCH"
+
+          BODY_FILE="$(mktemp)"
+          cat > "$BODY_FILE" <<EOF
+          ## Upstream sync
+
+          - upstream 起始 commit: ${START}
+          - upstream 最新 commit: ${LATEST}
+          - 新增 commit 数量: $COUNT
+          - 是否产生冲突: $CONFLICT
+          - CI 状态: pending, see checks on this PR
+          - 同步时间: $NOW
+
+          Source: $UPSTREAM_URL branch master.
+          Target: main.
+
+          This workflow never force-pushes main and never auto-merges.
+          If 是否产生冲突 is yes, resolve manually. Do not accept theirs over local product changes.
+          EOF
+
+          EXISTING="$(gh pr list --base main --head "$BRANCH" --json number --jq '.[0].number' || true)"
+          if [ -n "${EXISTING}" ] && [ "${EXISTING}" != "null" ]; then
+            gh pr edit "$EXISTING" --title "chore: sync upstream Alanosy/master" --body-file "$BODY_FILE"
+          else
+            gh pr create --base main --head "$BRANCH" --title "chore: sync upstream Alanosy/master" --body-file "$BODY_FILE"
+          fi
+
+          if [ "$CONFLICT" = "yes" ]; then
+            gh pr comment --body "Needs manual handling: upstream/master merge conflicts. Do not auto-accept theirs. Do not force-push main."
+          fi
